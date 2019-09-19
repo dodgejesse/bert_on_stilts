@@ -1,15 +1,13 @@
-cd mnist-example
 
 EXPERIMENT_IDS=""
-for SEED in {1..99}; do
+for SEED in {1..3}; do
     EXPERIMENT_IDS="${EXPERIMENT_IDS} `RANDOM_SEED=${SEED} beaker experiment create -f spec.yml -q`"
-    #EXPERIMENT_IDS="${EXPERIMENT_IDS} `echo $SEED`"
 done
 
 echo ""
 echo "experiment ids: ${EXPERIMENT_IDS}"
+echo "experiment ids: ${EXPERIMENT_IDS}" > cur_experiment_ids.txt
 
-cd ..
 
 bash beaker-wait-for-experiment.sh ${EXPERIMENT_IDS}
 

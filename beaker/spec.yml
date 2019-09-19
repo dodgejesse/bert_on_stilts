@@ -1,0 +1,19 @@
+description: A beaker experiment evaluating and training BERT models.
+tasks:
+  - name: BERT_init_eval
+    spec:
+      image: jessed/bert_init_eval
+      resultPath: /output
+      requirements:
+        gpuCount: 1
+      datasetMounts:
+        - datasetId: jessed/glue_data_for_bert
+          containerPath: /data
+        - datasetId: jessed/bert_pretrained_weights
+          containerPath: /pretrained_weights
+      env:
+        RANDOM_SEED: ${RANDOM_SEED}
+        BATCH_SIZE: 16
+      args:
+        - bash
+        - bert_on_stilts/beaker_run_experiment.sh

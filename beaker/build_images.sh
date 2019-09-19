@@ -9,5 +9,5 @@
 #docker run -it bert_init_eval sh
 
 docker build -t bert_init_eval .
-beaker image rename bert_init_eval bert_init_eval_old3
+beaker image rename bert_init_eval bert_init_eval_old11
 beaker image create -n bert_init_eval bert_init_eval
