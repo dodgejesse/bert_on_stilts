@@ -28,4 +28,3 @@ python bert_on_stilts/glue/train.py \
     --learning_rate 2e-5 \
     --seed ${SEED} \
     --output_dir ${OUTPUT_PATH} \
-    --train_examples_number 5000 \

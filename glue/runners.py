@@ -235,7 +235,9 @@ class GlueTaskRunner:
             train_dataloader = self.get_train_dataloader(train_examples, verbose=False)
             self.run_train_epoch(train_dataloader)
             epoch_result = self.run_val(val_examples, task_name, verbose=False)
+            print("validation performance after epoch " + str(epoch_result["metrics"]))
             del epoch_result["logits"]
+            del epoch_result["labels"]
             epoch_result_dict[i] = epoch_result
         return epoch_result_dict
 
@@ -310,6 +312,7 @@ class GlueTaskRunner:
             "logits": all_logits,
             "loss": eval_loss,
             "metrics": compute_task_metrics(task_name, all_logits, all_labels),
+            "labels": all_labels
         }
 
     def run_test(self, test_examples, verbose=True):

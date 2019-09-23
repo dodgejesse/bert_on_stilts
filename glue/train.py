@@ -13,6 +13,8 @@ from pytorch_pretrained_bert.utils import at_most_one_of, random_sample
 import shared.initialization as initialization
 import shared.log_info as log_info
 
+import init.norm_and_relabel
+
 # todo: cleanup imports
 
 
@@ -69,6 +71,7 @@ def get_args(*in_args):
                         action='store_true',
                         help="")
     parser.add_argument("--train_examples_number", type=int, default=None)
+    parser.add_argument("--val_examples_number", type=int, default=None)
     parser.add_argument("--train_save_every", type=int, default=None)
     parser.add_argument("--do_lower_case",
                         action='store_true',
@@ -121,6 +124,9 @@ def get_args(*in_args):
     parser.add_argument('--print-trainable-params', action="store_true")
     parser.add_argument('--not-verbose', action="store_true")
     parser.add_argument('--force-overwrite', action="store_true")
+
+    parser.add_argument('--eval_init', action="store_true")
+    
     args = parser.parse_args(*in_args)
     return args
 
@@ -146,6 +152,7 @@ def main():
         do_lower_case=args.do_lower_case,
         bert_vocab_path=args.bert_vocab_path,
     )
+
     all_state = shared_model_setup.load_overall_state(args.bert_load_path, relaxed=True)
     model = glue_model_setup.create_model(
         task_type=task.processor.TASK_TYPE,
@@ -160,6 +167,7 @@ def main():
         local_rank=args.local_rank,
         bert_config_json_path=args.bert_config_json_path,
     )
+
     if args.do_train:
         if args.print_trainable_params:
             log_info.print_trainable_params(model)
@@ -184,6 +192,13 @@ def main():
         t_total = 0
         optimizer = None
 
+
+    if args.eval_init or args.do_train or args.do_val:
+        val_examples = task.get_dev_examples()
+        if args.val_examples_number is not None:
+            val_examples = random_sample(val_examples, args.val_examples_number)
+
+        
     runner = GlueTaskRunner(
         model=model,
         optimizer=optimizer,
@@ -200,15 +215,24 @@ def main():
         )
     )
 
+    final_results = {}
+    if args.eval_init:
+        results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
+    
+        final_results["init_results"] = init.norm_and_relabel.logits(results)
+
+    
     if args.do_train:
         assert at_most_one_of([args.do_val_history, args.train_save_every])
         if args.do_val_history:
-            val_examples = task.get_dev_examples()
+            #val_examples = task.get_dev_examples()
             results = runner.run_train_val(
                 train_examples=train_examples,
                 val_examples=val_examples,
                 task_name=task.name,
             )
+
+            final_results["train_results"] = results
             metrics_str = json.dumps(results, indent=2)
             with open(os.path.join(args.output_dir, "val_metrics_history.json"), "w") as f:
                 f.write(metrics_str)
@@ -238,8 +262,8 @@ def main():
         )
 
     if args.do_val:
-        val_examples = task.get_dev_examples()
         results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
+                
         df = pd.DataFrame(results["logits"])
         df.to_csv(os.path.join(args.output_dir, "val_preds.csv"), header=False, index=False)
         metrics_str = json.dumps({"loss": results["loss"], "metrics": results["metrics"]}, indent=2)
@@ -247,6 +271,8 @@ def main():
         with open(os.path.join(args.output_dir, "val_metrics.json"), "w") as f:
             f.write(metrics_str)
 
+        final_results["val_results"] = results
+            
         # HACK for MNLI-mismatched
         if task.name == "mnli":
             mm_val_examples = MnliMismatchedProcessor().get_dev_examples(task.data_dir)
@@ -271,6 +297,8 @@ def main():
         df = pd.DataFrame(logits)
         df.to_csv(os.path.join(args.output_dir, "test_preds.csv"), header=False, index=False)
 
+        final_results["test_results"] = df
+        
         # HACK for MNLI-mismatched
         if task.name == "mnli":
             test_examples = MnliMismatchedProcessor().get_test_examples(task.data_dir)
@@ -278,6 +306,37 @@ def main():
             df = pd.DataFrame(logits)
             df.to_csv(os.path.join(args.output_dir, "mm_test_preds.csv"), header=False, index=False)
 
+    print_results(final_results)
 
+def print_results(final_results):
+    round_digits = 4
+    print("")
+    print("=======================================================================================")
+    print("final results")
+    print("")
+    if "init_results" in final_results:
+        print("performance of initialized, untrained model:")
+        print("unaltered logit accuracy: " + str(round(final_results["init_results"][0], round_digits)))
+        print("shifted logit accuracy: " + str(round(final_results["init_results"][1], round_digits)))
+        print("scaled and shifted accuracy: " + str(round(final_results["init_results"][2], round_digits)))
+        print("")
+    if "train_results" in final_results:
+        print("performance during training:")
+        results = final_results["train_results"]
+        for iter_num in results:
+            print("iter: " + str(iter_num) +
+                  ", accuracy: " + str(round(results[iter_num]['metrics']['acc'],round_digits)) +
+                  ", loss: " + str(round(results[iter_num]['loss'],round_digits)))
+        print("")
+    if "val_results" in final_results:
+        print("performance after training:")
+        results = final_results["val_results"]
+        print("after training validation accuracy: " + str(round(results['metrics']['acc'],round_digits)) +
+                  ", loss: " + str(round(results['loss'],round_digits)))
+        print("")
+    if "test_results" in final_results:
+        print(final_results["test_results"])
+              
+            
 if __name__ == "__main__":
     main()

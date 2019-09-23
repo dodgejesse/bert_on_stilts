@@ -1,6 +1,6 @@
 
 EXPERIMENT_IDS=""
-for SEED in {1..3}; do
+for SEED in {1..20}; do
     EXPERIMENT_IDS="${EXPERIMENT_IDS} `RANDOM_SEED=${SEED} beaker experiment create -f spec.yml -q`"
 done
 
@@ -24,4 +24,4 @@ echo "the experiment ids:"
 echo "${EXPERIMENT_IDS}"
 
 sleep 10
-tail -n 1 output/*.log | grep accuracy | awk '{print $4 $8}' > output/train_performance.txt
+#tail -n 1 output/*.log | grep accuracy | awk '{print $4 $8}' > output/train_performance.txt
