@@ -4,10 +4,10 @@ export BERT_ALL_DIR=bert_on_stilts/cache/bert_metadata
 
 
 # to specify an experiment
-export TASK=sst
+export TASK=${TASK}
 SEED=${RANDOM_SEED}
 DEBUG="debug_"
-export OUTPUT_PATH=output/sst/${DEBUG}seed_${SEED}/
+export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${SEED}/
 
 if [ ${DEBUG} == "debug_" ]; then
     rm ${OUTPUT_PATH}*

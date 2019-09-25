@@ -146,13 +146,6 @@ def main():
     initialization.save_args(args)
     task = get_task(args.task_name, args.data_dir)
 
-    tokenizer = shared_model_setup.create_tokenizer(
-        bert_model_name=args.bert_model,
-        bert_load_mode=args.bert_load_mode,
-        do_lower_case=args.do_lower_case,
-        bert_vocab_path=args.bert_vocab_path,
-    )
-
     all_state = shared_model_setup.load_overall_state(args.bert_load_path, relaxed=True)
     model = glue_model_setup.create_model(
         task_type=task.processor.TASK_TYPE,
@@ -168,6 +161,20 @@ def main():
         bert_config_json_path=args.bert_config_json_path,
     )
 
+    #print(model.classifier.weight)
+    #print(model)
+    #exit()
+    #import pdb; pdb.set_trace()
+
+    
+    
+    tokenizer = shared_model_setup.create_tokenizer(
+        bert_model_name=args.bert_model,
+        bert_load_mode=args.bert_load_mode,
+        do_lower_case=args.do_lower_case,
+        bert_vocab_path=args.bert_vocab_path,
+    )
+    
     if args.do_train:
         if args.print_trainable_params:
             log_info.print_trainable_params(model)
@@ -215,7 +222,7 @@ def main():
         )
     )
 
-    final_results = {}
+    final_results = {"seed": args.seed, "task": args.task_name}
     if args.eval_init:
         results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
     
@@ -233,6 +240,7 @@ def main():
             )
 
             final_results["train_results"] = results
+
             metrics_str = json.dumps(results, indent=2)
             with open(os.path.join(args.output_dir, "val_metrics_history.json"), "w") as f:
                 f.write(metrics_str)
@@ -309,30 +317,44 @@ def main():
     print_results(final_results)
 
 def print_results(final_results):
-    round_digits = 4
+    round_digits = 10
     print("")
     print("=======================================================================================")
     print("final results")
     print("")
+    print("task: " + str(final_results["task"]))
+    print("seed: " + str(final_results["seed"]))
+    print("")
     if "init_results" in final_results:
         print("performance of initialized, untrained model:")
-        print("unaltered logit accuracy: " + str(round(final_results["init_results"][0], round_digits)))
-        print("shifted logit accuracy: " + str(round(final_results["init_results"][1], round_digits)))
-        print("scaled and shifted accuracy: " + str(round(final_results["init_results"][2], round_digits)))
+        for perf in final_results["init_results"][0]:
+            print("unaltered init " + perf + ": " + str(round(final_results["init_results"][0][perf], round_digits)))
+        print("unaltered loss: " + str(round(final_results["init_results"][1], round_digits)))
+        print("relabeled logit accuracy: " + str(round(final_results["init_results"][2], round_digits)))
+        print("shifted logit accuracy: " + str(round(final_results["init_results"][3], round_digits)))
+        print("scaled and shifted accuracy: " + str(round(final_results["init_results"][4], round_digits)))
         print("")
     if "train_results" in final_results:
         print("performance during training:")
         results = final_results["train_results"]
         for iter_num in results:
-            print("iter: " + str(iter_num) +
-                  ", accuracy: " + str(round(results[iter_num]['metrics']['acc'],round_digits)) +
+            perf_string = ""
+            for performance in results[iter_num]['metrics']:
+                perf_string += ", " + performance + ": " + str(round(
+                    results[iter_num]['metrics'][performance],round_digits))
+            print("iter: " + str(iter_num) + perf_string + 
                   ", loss: " + str(round(results[iter_num]['loss'],round_digits)))
         print("")
     if "val_results" in final_results:
         print("performance after training:")
         results = final_results["val_results"]
-        print("after training validation accuracy: " + str(round(results['metrics']['acc'],round_digits)) +
-                  ", loss: " + str(round(results['loss'],round_digits)))
+
+        perf_string = ""
+        for performance in results['metrics']:
+            perf_string += performance + ": " + str(round(
+                    results['metrics'][performance],round_digits)) + ", "
+        print("after training validation " + perf_string +
+                  "loss: " + str(round(results['loss'],round_digits)))
         print("")
     if "test_results" in final_results:
         print(final_results["test_results"])

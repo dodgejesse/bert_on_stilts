@@ -1,14 +1,18 @@
 
 # results is a dict with four keys: 'logits', 'loss', 'metrics', 'labels'
 def logits(results):
-    
+
     shifted, scaled_and_shifted = norm_output(results['logits'])
 
-    lo_results = relabeled_accuracy(results['logits'], results['labels'], "logits")
+    re_results = relabeled_accuracy(results['logits'], results['labels'], "logits")
     sh_results = relabeled_accuracy(shifted, results['labels'], "shifted logits")
-    sc_results = relabeled_accuracy(scaled_and_shifted, results['labels'], "scaled and shifted logits")
+    sc_results = relabeled_accuracy(scaled_and_shifted, results['labels'], "scaled and shifted logits")    
 
-    return lo_results, sh_results, sc_results
+    #if "acc" in results['metrics']:
+    #    performance = results['metrics']['acc']
+    #elif "mcc" in results['metrics']:
+    #    performance = results['metrics']['mcc']
+    return results['metrics'], results['loss'], re_results, sh_results, sc_results
 
 def norm_output(logits):
     mean = logits.mean(axis=0)

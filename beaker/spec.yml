@@ -13,6 +13,7 @@ tasks:
           containerPath: /pretrained_weights
       env:
         RANDOM_SEED: ${RANDOM_SEED}
+        TASK: ${TASK}
         BATCH_SIZE: 16
       args:
         - bash

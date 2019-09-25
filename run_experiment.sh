@@ -4,10 +4,10 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 
 
 # to specify an experiment
-export TASK=sst
+export TASK=mrpc
 SEED=4
 DEBUG="debug_"
-export OUTPUT_PATH=output/sst/${DEBUG}seed_${SEED}/
+export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${SEED}/
 
 if [ ${DEBUG} == "debug_" ]; then
     rm ${OUTPUT_PATH}*
@@ -29,4 +29,4 @@ CUDA_VISIBLE_DEVICES=0 python glue/train.py \
     --seed ${SEED} \
     --output_dir ${OUTPUT_PATH} \
     --train_examples_number 40 \
-    --val_examples_number 40
+    --val_examples_number 40 \

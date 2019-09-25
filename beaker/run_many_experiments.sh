@@ -1,7 +1,9 @@
 
+TASK=mrpc
+
 EXPERIMENT_IDS=""
 for SEED in {1..20}; do
-    EXPERIMENT_IDS="${EXPERIMENT_IDS} `RANDOM_SEED=${SEED} beaker experiment create -f spec.yml -q`"
+    EXPERIMENT_IDS="${EXPERIMENT_IDS} `RANDOM_SEED=${SEED} TASK=${TASK} beaker experiment create -f spec.yml -q`"
 done
 
 echo ""
@@ -15,7 +17,7 @@ echo "next, going to get logs for the following experiments:"
 echo "${EXPERIMENT_IDS}"
 
 for CUR_ID in ${EXPERIMENT_IDS}; do
-    bash beaker-get-logs.sh ${CUR_ID}
+    bash beaker-get-logs.sh ${CUR_ID} ${TASK}
     sleep 3
 done
 
