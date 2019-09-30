@@ -3,6 +3,8 @@ import logging
 import numpy as np
 from tqdm import tqdm, trange
 
+import copy
+
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -229,21 +231,52 @@ class GlueTaskRunner:
         for _ in trange(int(self.rparams.num_train_epochs), desc="Epoch"):
             self.run_train_epoch(train_dataloader)
 
-    def run_train_val(self, train_examples, val_examples, task_name):
+    def run_train_val(self, train_examples, val_examples, task_name, eval_during_train=False):
         epoch_result_dict = col.OrderedDict()
         for i in trange(int(self.rparams.num_train_epochs), desc="Epoch"):
             train_dataloader = self.get_train_dataloader(train_examples, verbose=False)
-            self.run_train_epoch(train_dataloader)
+
+
+            #self.run_train_epoch(train_dataloader)
+
+            if eval_during_train:
+                during_train_results = self.run_train_epoch_and_val(train_dataloader, val_examples, task_name, i)
+            else:
+                self.run_train_epoch(train_dataloader)
+                during_train_results = None
+            
             epoch_result = self.run_val(val_examples, task_name, verbose=False)
             print("validation performance after epoch " + str(epoch_result["metrics"]))
             del epoch_result["logits"]
             del epoch_result["labels"]
-            epoch_result_dict[i] = epoch_result
+            epoch_result_dict[i] = [during_train_results, epoch_result]
+
         return epoch_result_dict
 
     def run_train_epoch(self, train_dataloader):
         for _ in self.run_train_epoch_context(train_dataloader):
             pass
+
+    def run_train_epoch_and_val(self, train_dataloader, val_examples, task_name, epoch_num):
+        train_progress = col.OrderedDict()
+
+        for results in self.run_train_epoch_context(train_dataloader):
+
+            step, _, train_epoch_state = results
+
+            # evaluate the first ten steps, then every 10 steps (ten times), then every 100 steps
+            
+            if ((step < 20 or (step < 121 and step % 10 == 0)) and epoch_num == 0) or step % 100 == 0:
+                cur_val_result = self.run_val(val_examples, task_name, verbose=False)
+                del cur_val_result["logits"]
+                del cur_val_result["labels"]
+            else:
+                cur_val_result = None
+            deepcopy_of_train_state = copy.deepcopy(train_epoch_state)
+            train_progress[step] = [deepcopy_of_train_state, cur_val_result]
+
+        return train_progress
+        
 
     def run_train_epoch_context(self, train_dataloader):
         self.model.train()

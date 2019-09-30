@@ -2,12 +2,34 @@
 import os
 import numpy as np
 
-dataset = "sst"
+
+datasets = ["mrpc", "sst", "cola"]
+
+dataset = "mrpc"
 data_path = "/home/jessedd/projects/bert_on_stilts/beaker/output/{}/".format(dataset)
 
 
-def sort_seeds_by_performance(data):
-    tmp = [[data[seed]["iter_2"], seed] for seed in data]
+def sort_by_init_loss(data):
+    
+    sorted_results = [[data[seed]["init_loss"], data[seed]["iter_2"]] for seed in data ]
+    sorted_results.sort(reverse=True)
+
+    best_pretrain_avgs = []
+    worst_pretrain_avgs = []
+
+    num_to_avg = [2, 3, 4, 5, 10]
+    
+    for i in num_to_avg:
+        best_pretrain_avgs.append(round(np.mean([post[1] for post in sorted_results[-i:]]),4))
+        worst_pretrain_avgs.append(round(np.mean([post[1] for post in sorted_results[:i]]),4))
+
+    print("sorted by best pretrain loss, average of {} posttrain: {}".format(num_to_avg, best_pretrain_avgs))
+    print("sorted by worst pretrain loss, average of {} posttrain: {}".format(num_to_avg, worst_pretrain_avgs))
+
+
+
+def sort_by_seed(data):
+    tmp = [[seed, data[seed]["iter_2"]] for seed in data]
     tmp.sort()
     print([s[1] for s in tmp])
     #print(tmp)
@@ -20,7 +42,6 @@ def find_correlation(data, first_field, second_field):
     print(np.corrcoef(tmp, rowvar=False))
 
 
-
 def process_mrpc_lines(lines):
     performance = {}
     cur_seed = -1
@@ -28,17 +49,28 @@ def process_mrpc_lines(lines):
         line = line.strip()
         if "seed: " in line:
             performance["seed"] = int(line.split(":")[-1])
-        elif "unaltered init" in line:
-            performance["logit_acc"] = float(line.split(":")[-1])
-        elif "shifted logit accuracy" in line:
-            performance["shifted_logit_acc"] = float(line.split(":")[-1])
-        elif "scaled and shifted accuracy" in line:
-            performance["scale_shift_logit_acc"] = float(line.split(":")[-1])
+        elif "unaltered init acc:" in line:
+            performance["init_acc"] = float(line.split(":")[-1])
+        elif "unaltered init f1" in line:
+            performance["init_f1"] = float(line.split(":")[-1])
+        elif "unaltered init acc_and_f1" in line:
+            performance["init_acc_and_f1"] = float(line.split(":")[-1])
+        elif "unaltered loss" in line:
+            performance["init_loss"] = float(line.split(":")[-1])
+
+            
         elif "train_examples_number" in line:
             performance["num_train"] = line.split(":")[-1].strip()
         elif "iter:" in line:
             iter_num = line.split(":")[3].split(",")[0].strip()
             iter_acc = float(line.split(":")[4].split(",")[0].strip())
+            iter_f1 = float(line.split(":")[5].split(",")[0].strip())
+            iter_acc_and_f1 = float(line.split(":")[6].split(",")[0].strip())
+
+            performance["iter_acc_" + iter_num] = iter_acc
+            performance["iter_f1_" + iter_num] = iter_f1
+            performance["iter_acc_and_f1" + iter_num] = iter_acc_and_f1
+            
             performance["iter_" + iter_num] = iter_acc
 
     return performance
@@ -50,8 +82,12 @@ def process_cola_lines(lines):
         line = line.strip()
         if "seed: " in line:
             performance["seed"] = int(line.split(":")[-1])
-        elif "unaltered init" in line:
-            performance["logit_acc"] = float(line.split(":")[-1])
+        elif "unaltered init performance" in line:
+            performance["init_perf"] = float(line.split(":")[-1])
+        elif "unaltered loss" in line:
+            performance["init_loss"] = float(line.split(":")[-1])
+        elif "relabeled logit accuracy" in line:
+            performance["relabel_logit_acc"] = float(line.split(":")[-1])
         elif "shifted logit accuracy" in line:
             performance["shifted_logit_acc"] = float(line.split(":")[-1])
         elif "scaled and shifted accuracy" in line:
@@ -60,8 +96,8 @@ def process_cola_lines(lines):
             performance["num_train"] = line.split(":")[-1].strip()
         elif "iter:" in line:
             iter_num = line.split(":")[3].split(",")[0].strip()
-            iter_acc = float(line.split(":")[4].split(",")[0].strip())
-            performance["iter_" + iter_num] = iter_acc
+            iter_mcc = float(line.split(":")[4].split(",")[0].strip())
+            performance["iter_" + iter_num] = iter_mcc
 
     return performance
     
@@ -112,7 +148,12 @@ def load_data():
 
 def main():
     data = load_data()
-    sort_seeds_by_performance(data['None'])
+    #sort_by_seed(data['None'])
+
+    sort_by_init_loss(data['None'])
+
+
+    
     #sort_seeds_by_performance(data['5000'])
     #find_correlation(data['5000'], "logit_acc", "iter_0")
     #find_correlation(data['5000'], "iter_0","logit_acc")

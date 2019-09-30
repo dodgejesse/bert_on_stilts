@@ -12,6 +12,7 @@ from shared import model_setup as shared_model_setup
 from pytorch_pretrained_bert.utils import at_most_one_of, random_sample
 import shared.initialization as initialization
 import shared.log_info as log_info
+import print_results
 
 import init.norm_and_relabel
 
@@ -126,6 +127,7 @@ def get_args(*in_args):
     parser.add_argument('--force-overwrite', action="store_true")
 
     parser.add_argument('--eval_init', action="store_true")
+    parser.add_argument('--eval_during_train', action="store_true")
     
     args = parser.parse_args(*in_args)
     return args
@@ -232,16 +234,18 @@ def main():
     if args.do_train:
         assert at_most_one_of([args.do_val_history, args.train_save_every])
         if args.do_val_history:
-            #val_examples = task.get_dev_examples()
+
             results = runner.run_train_val(
                 train_examples=train_examples,
                 val_examples=val_examples,
                 task_name=task.name,
+                eval_during_train=args.eval_during_train,
             )
 
             final_results["train_results"] = results
+            valid_results = [results[iter_num][1] for iter_num in results]
 
-            metrics_str = json.dumps(results, indent=2)
+            metrics_str = json.dumps(valid_results, indent=2)
             with open(os.path.join(args.output_dir, "val_metrics_history.json"), "w") as f:
                 f.write(metrics_str)
         elif args.train_save_every:
@@ -271,7 +275,7 @@ def main():
 
     if args.do_val:
         results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
-                
+
         df = pd.DataFrame(results["logits"])
         df.to_csv(os.path.join(args.output_dir, "val_preds.csv"), header=False, index=False)
         metrics_str = json.dumps({"loss": results["loss"], "metrics": results["metrics"]}, indent=2)
@@ -314,51 +318,7 @@ def main():
             df = pd.DataFrame(logits)
             df.to_csv(os.path.join(args.output_dir, "mm_test_preds.csv"), header=False, index=False)
 
-    print_results(final_results)
+    print_results.print_all_results(final_results)
 
-def print_results(final_results):
-    round_digits = 10
-    print("")
-    print("=======================================================================================")
-    print("final results")
-    print("")
-    print("task: " + str(final_results["task"]))
-    print("seed: " + str(final_results["seed"]))
-    print("")
-    if "init_results" in final_results:
-        print("performance of initialized, untrained model:")
-        for perf in final_results["init_results"][0]:
-            print("unaltered init " + perf + ": " + str(round(final_results["init_results"][0][perf], round_digits)))
-        print("unaltered loss: " + str(round(final_results["init_results"][1], round_digits)))
-        print("relabeled logit accuracy: " + str(round(final_results["init_results"][2], round_digits)))
-        print("shifted logit accuracy: " + str(round(final_results["init_results"][3], round_digits)))
-        print("scaled and shifted accuracy: " + str(round(final_results["init_results"][4], round_digits)))
-        print("")
-    if "train_results" in final_results:
-        print("performance during training:")
-        results = final_results["train_results"]
-        for iter_num in results:
-            perf_string = ""
-            for performance in results[iter_num]['metrics']:
-                perf_string += ", " + performance + ": " + str(round(
-                    results[iter_num]['metrics'][performance],round_digits))
-            print("iter: " + str(iter_num) + perf_string + 
-                  ", loss: " + str(round(results[iter_num]['loss'],round_digits)))
-        print("")
-    if "val_results" in final_results:
-        print("performance after training:")
-        results = final_results["val_results"]
-
-        perf_string = ""
-        for performance in results['metrics']:
-            perf_string += performance + ": " + str(round(
-                    results['metrics'][performance],round_digits)) + ", "
-        print("after training validation " + perf_string +
-                  "loss: " + str(round(results['loss'],round_digits)))
-        print("")
-    if "test_results" in final_results:
-        print(final_results["test_results"])
-              
-            
 if __name__ == "__main__":
     main()

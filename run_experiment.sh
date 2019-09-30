@@ -4,7 +4,7 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 
 
 # to specify an experiment
-export TASK=mrpc
+export TASK=sst
 SEED=4
 DEBUG="debug_"
 export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${SEED}/
@@ -24,6 +24,7 @@ CUDA_VISIBLE_DEVICES=0 python glue/train.py \
     --bert_load_mode model_only \
     --bert_save_mode model_all \
     --eval_init \
+    --eval_during_train \
     --train_batch_size 4 \
     --learning_rate 2e-5 \
     --seed ${SEED} \
