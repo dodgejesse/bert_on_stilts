@@ -12,7 +12,9 @@ def logits(results):
     #    performance = results['metrics']['acc']
     #elif "mcc" in results['metrics']:
     #    performance = results['metrics']['mcc']
-    return results['metrics'], results['loss'], re_results, sh_results, sc_results
+    del results['logits']
+    del results['labels']
+    return results, re_results, sh_results, sc_results
 
 def norm_output(logits):
     mean = logits.mean(axis=0)

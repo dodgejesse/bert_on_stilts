@@ -26,7 +26,7 @@ def init_seed(args, n_gpu, logger):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    logger.info("Using seed: {}".format(seed))
+    logger.info("For init model using seed: {}".format(seed))
     args.seed = seed
 
     if n_gpu > 0:

@@ -5,7 +5,7 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 
 # to specify an experiment
 export TASK=sst
-SEED=4
+SEED=1
 DEBUG="debug_"
 export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${SEED}/
 

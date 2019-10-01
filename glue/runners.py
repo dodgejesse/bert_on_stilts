@@ -236,7 +236,6 @@ class GlueTaskRunner:
         for i in trange(int(self.rparams.num_train_epochs), desc="Epoch"):
             train_dataloader = self.get_train_dataloader(train_examples, verbose=False)
 
-
             #self.run_train_epoch(train_dataloader)
 
             if eval_during_train:
@@ -264,7 +263,7 @@ class GlueTaskRunner:
 
             step, _, train_epoch_state = results
 
-            # evaluate the first ten steps, then every 10 steps (ten times), then every 100 steps
+            # evaluate the first 20 steps, then every 10 steps (10 times), then every 100 steps
             
             if ((step < 20 or (step < 121 and step % 10 == 0)) and epoch_num == 0) or step % 100 == 0:
                 cur_val_result = self.run_val(val_examples, task_name, verbose=False)
@@ -282,6 +281,7 @@ class GlueTaskRunner:
         self.model.train()
         train_epoch_state = TrainEpochState()
         for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
+            import pdb; pdb.set_trace()
             self.run_train_step(
                 step=step,
                 batch=batch,

@@ -109,6 +109,10 @@ def get_args(*in_args):
                         type=int,
                         default=-1,
                         help="random seed for initialization")
+    parser.add_argument('--data_order_seed',
+                        type=int,
+                        default=-1,
+                        help="random seed for the order in which we seed the data")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
                         default=1,
@@ -168,7 +172,6 @@ def main():
     #exit()
     #import pdb; pdb.set_trace()
 
-    
     
     tokenizer = shared_model_setup.create_tokenizer(
         bert_model_name=args.bert_model,

@@ -29,12 +29,14 @@ def print_train_loss(final_results):
 
         train_losses += cur_results
 
+    print("")
     print("the losses at each train step:")
     print(train_losses)
+    print("")
     
             
 def print_valid_loss(final_results):
-    init_loss = final_results['init_results'][1]
+    init_loss = final_results['init_results'][0]['loss']
     valid_loss_throughout_train = []
 
     for epoch in final_results["train_results"]:
@@ -46,20 +48,53 @@ def print_valid_loss(final_results):
         if valid_loss_throughout_train[i] is not None:
             computed_losses.append([i, valid_loss_throughout_train[i]['loss']])
 
-    import pdb; pdb.set_trace()
+    print("")
     print("validation loss of initialized model:")
     print(init_loss)
-    print("validation losses when evaluated:")
+    print("validation losses throughout training:")
     print(computed_losses)
     print("validation loss after training:")
     print(final_results['val_results']['loss'])
+    print("")
+
+
+def print_valid_metrics(final_results):
+    for metric in final_results['init_results'][0]['metrics']:
+
+        init_perf = final_results['init_results'][0]['metrics'][metric]
+        valid_perf_throughout_train = []
+        
+        for epoch in final_results["train_results"]:
+            cur_train_results = final_results["train_results"][epoch]
+            valid_perf_throughout_train += [cur_train_results[0][iter_num][1] for iter_num in cur_train_results[0]]
+
+
+        computed_perfs = []
+        for i in range(len(valid_perf_throughout_train)):
+            if valid_perf_throughout_train[i] is not None:
+                computed_perfs.append([i, valid_perf_throughout_train[i]['metrics'][metric]])
+
+
+        print("")
+        print("metric: {}".format(metric))
+        print("validation {} of initialized model:".format(metric))
+        print(init_perf)
+        print("validation {} throughout training:".format(metric))
+        print(computed_perfs)
+        print("validation {} after training:".format(metric))
+        print(final_results['val_results']['metrics'][metric])
+        print("")
         
     
 def print_all_results(final_results):
     #print_beginning(final_results)
     print_train_loss(final_results)
     print_valid_loss(final_results)
+    print_valid_metrics(final_results)
 
+    import pdb; pdb.set_trace()
+
+    
 def print_results_OLD(final_results):
     print_beginning(final_results)
     if "init_results" in final_results:
