@@ -14,6 +14,8 @@ from .evaluate import compute_metrics
 from pytorch_pretrained_bert.utils import truncate_seq_pair
 from shared.runners import warmup_linear
 
+from data_sampler import OrderedSampler
+
 logger = logging.getLogger(__name__)
 
 
@@ -141,7 +143,7 @@ def convert_examples_to_features(examples, label_map, max_seq_length, tokenizer,
 def convert_to_dataset(features, label_mode):
     full_batch = features_to_data(features, label_mode=label_mode)
     if full_batch.label_ids is None:
-        dataset = TensorDataset(full_batch.input_ids, full_batch.input_mask,
+       dataset = TensorDataset(full_batch.input_ids, full_batch.input_mask,
                                 full_batch.segment_ids)
     else:
         dataset = TensorDataset(full_batch.input_ids, full_batch.input_mask,
@@ -231,10 +233,18 @@ class GlueTaskRunner:
         for _ in trange(int(self.rparams.num_train_epochs), desc="Epoch"):
             self.run_train_epoch(train_dataloader)
 
-    def run_train_val(self, train_examples, val_examples, task_name, eval_during_train=False):
+    def run_train_val(self, train_examples, val_examples, task_name, eval_during_train=False, data_order_seed=None):
         epoch_result_dict = col.OrderedDict()
+
+        if data_order_seed is not None:
+            data_iterators = self.get_data_order(train_examples, data_order_seed, int(self.rparams.num_train_epochs))
+            
         for i in trange(int(self.rparams.num_train_epochs), desc="Epoch"):
-            train_dataloader = self.get_train_dataloader(train_examples, verbose=False)
+            if data_order_seed is not None:
+                train_dataloader = self.get_train_dataloader(train_examples, verbose=False,
+                                                             data_order=data_iterators[i])
+            else:
+                train_dataloader = self.get_train_dataloader(train_examples, verbose=False)
 
             #self.run_train_epoch(train_dataloader)
 
@@ -361,7 +371,73 @@ class GlueTaskRunner:
         all_logits = np.concatenate(all_logits, axis=0)
         return all_logits
 
-    def get_train_dataloader(self, train_examples, verbose=True):
+    def get_data_order(self, train_examples, data_order_seed, num_train_epochs):
+        train_features = convert_examples_to_features(
+            train_examples, self.label_map, self.rparams.max_seq_length, self.tokenizer,
+            verbose=False,
+        )
+        train_data, train_tokens = convert_to_dataset(
+            train_features, label_mode=get_label_mode(self.label_map),
+        )
+        
+        iterators = []
+        train_sampler = RandomSampler(train_data)
+        print("Setting data order seed to {}".format(data_order_seed))
+        torch.manual_seed(data_order_seed)
+        for epoch in range(num_train_epochs):
+            iterators.append(train_sampler.__iter__())
+
+        return iterators
+
+    def debug_data_order_seed(self, train_sampler):
+        # to debug setting the seed for the data order.
+        # if the seed is set, and interators are created, they will retain their order even if other samples are drawn
+        if True:
+            torch.manual_seed(1234)
+
+            order = train_sampler.__iter__()
+            for index in order:
+                print(index, end=", ")
+            print("")
+            #torch.manual_seed(1234)
+
+            order = train_sampler.__iter__()
+            for index in order:
+                print(index, end=", ")
+            print("")
+            torch.manual_seed(1234)
+
+            order = train_sampler.__iter__()
+            for index in order:
+                print(index, end=", ")
+            print("")
+
+            data_iterators = self.get_data_order(train_examples, data_order_seed=1234, num_train_epochs = 3)
+            counter = 0
+            for index in data_iterators[0]:
+                print(index, end=", ")
+                if counter == 5:
+                    break
+                counter += 1
+            print("")
+            counter = 0
+            for index in data_iterators[1]:
+                print(index, end=", ")
+                if counter == 5:
+                    break
+                counter += 1 
+            print("")
+            for index in data_iterators[0]:
+                print(index, end=", ")
+            print("")
+            for index in data_iterators[1]:
+                print(index, end=", ")
+            print("")
+                
+
+            import pdb; pdb.set_trace()
+
+    def get_train_dataloader(self, train_examples, verbose=True, data_order=None):
         train_features = convert_examples_to_features(
             train_examples, self.label_map, self.rparams.max_seq_length, self.tokenizer,
             verbose=verbose,
@@ -369,13 +445,37 @@ class GlueTaskRunner:
         train_data, train_tokens = convert_to_dataset(
             train_features, label_mode=get_label_mode(self.label_map),
         )
+
         if self.rparams.local_rank == -1:
-            train_sampler = RandomSampler(train_data)
+            if data_order is None:
+                train_sampler = RandomSampler(train_data)
+            else:
+                train_sampler = OrderedSampler(train_examples, data_order)
         else:
             train_sampler = DistributedSampler(train_data)
+            assert False
+
+
+        if False:
+            debug_data_order_seed()
+            
         train_dataloader = DataLoader(
             train_data, sampler=train_sampler, batch_size=self.rparams.train_batch_size,
         )
+
+        
+        # DEBUG
+        to_return = HybridLoader(train_dataloader, train_tokens)
+        import pdb; pdb.set_trace()
+        for step, batch in enumerate(to_return):
+            print("Problem! the batch.tokens (from HybridLoader) dont change when we change the seed.")
+            print("This is likely because of the mismatch between the RandomSampler (or OrderedSampler) and ", end="")
+            print("the way the convert_examples_to_features and convert_to_dataset functions work.")
+            print(batch.tokens)
+
+
+        
+        
         return HybridLoader(train_dataloader, train_tokens)
 
     def get_eval_dataloader(self, eval_examples, verbose=True):

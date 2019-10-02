@@ -111,7 +111,7 @@ def get_args(*in_args):
                         help="random seed for initialization")
     parser.add_argument('--data_order_seed',
                         type=int,
-                        default=-1,
+                        default=None,
                         help="random seed for the order in which we seed the data")
     parser.add_argument('--gradient_accumulation_steps',
                         type=int,
@@ -243,6 +243,7 @@ def main():
                 val_examples=val_examples,
                 task_name=task.name,
                 eval_during_train=args.eval_during_train,
+                data_order_seed=args.data_order_seed,
             )
 
             final_results["train_results"] = results

@@ -6,6 +6,7 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 # to specify an experiment
 export TASK=sst
 SEED=1
+DATA_ORDER_SEED=3
 DEBUG="debug_"
 export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${SEED}/
 
@@ -28,6 +29,7 @@ CUDA_VISIBLE_DEVICES=0 python glue/train.py \
     --train_batch_size 4 \
     --learning_rate 2e-5 \
     --seed ${SEED} \
+    --data_order_seed ${DATA_ORDER_SEED} \
     --output_dir ${OUTPUT_PATH} \
     --train_examples_number 40 \
     --val_examples_number 40 \
