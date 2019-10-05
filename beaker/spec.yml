@@ -12,7 +12,8 @@ tasks:
         - datasetId: jessed/bert_pretrained_weights
           containerPath: /pretrained_weights
       env:
-        RANDOM_SEED: ${RANDOM_SEED}
+        INIT_SEED: ${INIT_SEED}
+        DATA_SEED: ${DATA_SEED}
         TASK: ${TASK}
         BATCH_SIZE: 16
       args:

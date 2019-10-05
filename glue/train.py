@@ -132,6 +132,9 @@ def get_args(*in_args):
 
     parser.add_argument('--eval_init', action="store_true")
     parser.add_argument('--eval_during_train', action="store_true")
+    parser.add_argument('--eval_save_loc', default=None,
+                        help="File path to save the results of evaluations during training")
+
     
     args = parser.parse_args(*in_args)
     return args
@@ -144,7 +147,7 @@ def main():
     logger = logging.getLogger(__name__)
     args = get_args()
     log_info.print_args(args)
-
+    
     device, n_gpu = initialization.init_cuda_from_args(args, logger=logger)
     initialization.init_seed(args, n_gpu=n_gpu, logger=logger)
     initialization.init_train_batch_size(args)
@@ -227,7 +230,7 @@ def main():
         )
     )
 
-    final_results = {"seed": args.seed, "task": args.task_name}
+    final_results = {"init_seed": args.seed, "task": args.task_name, "data_order_seed": args.data_order_seed}
     if args.eval_init:
         results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
     
@@ -322,7 +325,7 @@ def main():
             df = pd.DataFrame(logits)
             df.to_csv(os.path.join(args.output_dir, "mm_test_preds.csv"), header=False, index=False)
 
-    print_results.print_all_results(final_results)
+    print_results.print_all_results(final_results, args.eval_save_loc)
 
 if __name__ == "__main__":
     main()

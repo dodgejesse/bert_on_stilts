@@ -2,6 +2,7 @@ import collections as col
 import logging
 import numpy as np
 from tqdm import tqdm, trange
+import sys
 
 import copy
 
@@ -255,7 +256,7 @@ class GlueTaskRunner:
                 during_train_results = None
             
             epoch_result = self.run_val(val_examples, task_name, verbose=False)
-            print("validation performance after epoch " + str(epoch_result["metrics"]))
+            print("validation performance after epoch {}: {}".format(i,epoch_result["metrics"]))
             del epoch_result["logits"]
             del epoch_result["labels"]
             epoch_result_dict[i] = [during_train_results, epoch_result]
@@ -274,8 +275,9 @@ class GlueTaskRunner:
             step, _, train_epoch_state = results
 
             # evaluate the first 20 steps, then every 10 steps (10 times), then every 100 steps
-            
-            if ((step < 20 or (step < 121 and step % 10 == 0)) and epoch_num == 0) or step % 100 == 0:
+
+            tenth_of_epoch = min(int(len(train_dataloader)/10), 100)
+            if ((step < 50 or (step < 300 and step % 10 == 0)) and epoch_num == 0) or step % tenth_of_epoch == 0:
                 cur_val_result = self.run_val(val_examples, task_name, verbose=False)
                 del cur_val_result["logits"]
                 del cur_val_result["labels"]
@@ -290,8 +292,8 @@ class GlueTaskRunner:
     def run_train_epoch_context(self, train_dataloader):
         self.model.train()
         train_epoch_state = TrainEpochState()
-        for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
-            import pdb; pdb.set_trace()
+        for step, batch in enumerate(tqdm(train_dataloader, desc="Training",file=sys.stdout)):
+            #import pdb; pdb.set_trace()
             self.run_train_step(
                 step=step,
                 batch=batch,
@@ -331,7 +333,7 @@ class GlueTaskRunner:
         nb_eval_steps, nb_eval_examples = 0, 0
         all_logits = []
         all_labels = []
-        for step, batch in enumerate(tqdm(val_dataloader, desc="Evaluating (Val)")):
+        for step, batch in enumerate(tqdm(val_dataloader, desc="Evaluating (Val)", file=sys.stdout)):
             batch = batch.to(self.device)
 
             with torch.no_grad():
@@ -391,7 +393,8 @@ class GlueTaskRunner:
 
     def debug_data_order_seed(self, train_sampler):
         # to debug setting the seed for the data order.
-        # if the seed is set, and interators are created, they will retain their order even if other samples are drawn
+        # if the seed is set, and interators are created,
+        # they will retain their order even if other samples are drawn
         if True:
             torch.manual_seed(1234)
 
@@ -465,13 +468,18 @@ class GlueTaskRunner:
 
         
         # DEBUG
-        to_return = HybridLoader(train_dataloader, train_tokens)
-        import pdb; pdb.set_trace()
-        for step, batch in enumerate(to_return):
-            print("Problem! the batch.tokens (from HybridLoader) dont change when we change the seed.")
-            print("This is likely because of the mismatch between the RandomSampler (or OrderedSampler) and ", end="")
-            print("the way the convert_examples_to_features and convert_to_dataset functions work.")
-            print(batch.tokens)
+        if False:
+            to_return = HybridLoader(train_dataloader, train_tokens)
+            import pdb; pdb.set_trace()
+            for step, batch in enumerate(to_return):
+                print(batch.tokens)
+
+                
+                print("Problem! the batch.tokens (from HybridLoader) dont change when we change the seed.")
+                print("This is likely because of the mismatch between the RandomSampler or OrderedSampler and ", end="")
+                print("the way the convert_examples_to_features and convert_to_dataset functions work.")
+                print("It's possible this isn't actually a problem.")
+
 
 
         

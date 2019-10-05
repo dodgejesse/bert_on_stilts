@@ -1,23 +1,20 @@
 
-
-
 round_digits = 10
 
 
-def print_beginning(final_results):
-    print("")
-    print("=======================================================================================")
-    print("final results")
-    print("")
-    print("task: " + str(final_results["task"]))
-    print("init seed: " + str(final_results["init_seed"]))
-    print("data seed: " + str(final_results["data_seed"]))
-    print("")
-        
+def print_beginning(final_results, out_string):
+    out_string += "\n"
+    out_string += "=======================================================================================" + "\n"
+    out_string += "final results" + "\n"
+    out_string += "\n"
+    out_string += "task: " + str(final_results["task"]) + "\n"
+    out_string += "init seed: " + str(final_results["init_seed"]) + "\n"
+    out_string += "data order seed: " + str(final_results["data_order_seed"]) + "\n"
+    out_string += "\n"
+    return out_string
 
 
-
-def print_train_loss(final_results):
+def print_train_loss(final_results, out_string):
     train_results = final_results["train_results"]
     train_losses = []
 
@@ -29,13 +26,15 @@ def print_train_loss(final_results):
 
         train_losses += cur_results
 
-    print("")
-    print("the losses at each train step:")
-    print(train_losses)
-    print("")
+    out_string += "\n"
+    out_string += "the losses at each train step:" + "\n"
+    out_string += str(train_losses) + "\n"
+    out_string += "\n"
+
+    return out_string
     
             
-def print_valid_loss(final_results):
+def print_valid_loss(final_results, out_string):
     init_loss = final_results['init_results'][0]['loss']
     valid_loss_throughout_train = []
 
@@ -48,17 +47,20 @@ def print_valid_loss(final_results):
         if valid_loss_throughout_train[i] is not None:
             computed_losses.append([i, valid_loss_throughout_train[i]['loss']])
 
-    print("")
-    print("validation loss of initialized model:")
-    print(init_loss)
-    print("validation losses throughout training:")
-    print(computed_losses)
-    print("validation loss after training:")
-    print(final_results['val_results']['loss'])
-    print("")
+    out_string += "\n"
+    out_string += "metric: loss" + "\n"
+    out_string += "validation loss of initialized model:" + "\n"
+    out_string += str(init_loss) + "\n"
+    out_string += "validation loss throughout training:" + "\n"
+    out_string += str(computed_losses) + "\n"
+    out_string += "validation loss after training:" + "\n"
+    out_string += str(final_results['val_results']['loss']) + "\n"
+    out_string += "\n"
+
+    return out_string
 
 
-def print_valid_metrics(final_results):
+def print_valid_metrics(final_results, out_string):
     for metric in final_results['init_results'][0]['metrics']:
 
         init_perf = final_results['init_results'][0]['metrics'][metric]
@@ -75,24 +77,29 @@ def print_valid_metrics(final_results):
                 computed_perfs.append([i, valid_perf_throughout_train[i]['metrics'][metric]])
 
 
-        print("")
-        print("metric: {}".format(metric))
-        print("validation {} of initialized model:".format(metric))
-        print(init_perf)
-        print("validation {} throughout training:".format(metric))
-        print(computed_perfs)
-        print("validation {} after training:".format(metric))
-        print(final_results['val_results']['metrics'][metric])
-        print("")
-        
-    
-def print_all_results(final_results):
-    #print_beginning(final_results)
-    print_train_loss(final_results)
-    print_valid_loss(final_results)
-    print_valid_metrics(final_results)
+        out_string += "\n"
+        out_string += "metric: {}".format(metric) + "\n"
+        out_string += "validation {} of initialized model:".format(metric) + "\n"
+        out_string += str(init_perf) + "\n"
+        out_string += "validation {} throughout training:".format(metric) + "\n"
+        out_string += str(computed_perfs) + "\n"
+        out_string += "validation {} after training:".format(metric) + "\n"
+        out_string += str(final_results['val_results']['metrics'][metric]) + "\n"
+        out_string += "\n"
+    return out_string
 
-    import pdb; pdb.set_trace()
+
+def print_all_results(final_results, save_loc):
+    out_string = ""
+    out_string = print_beginning(final_results, out_string)
+    out_string = print_train_loss(final_results, out_string)
+    out_string = print_valid_loss(final_results, out_string)
+    out_string = print_valid_metrics(final_results, out_string)
+    if save_loc is None:
+        print(out_string)
+    else:
+        with open(save_loc, 'w') as f:
+            f.write(out_string)
 
     
 def print_results_OLD(final_results):
