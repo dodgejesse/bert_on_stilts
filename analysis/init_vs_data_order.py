@@ -3,7 +3,7 @@ import numpy as np
 
 def main():
     data = loading_data.load_all_data()
-
+    import pdb; pdb.set_trace()
     #for dataset in data:
     make_two_d_mtx(data['mrpc']['None'])
 

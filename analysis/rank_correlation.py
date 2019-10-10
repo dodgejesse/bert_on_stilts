@@ -1,25 +1,124 @@
 import scipy.stats
-
-#cola = [1, 2, 18, 9, 14, 19, 12, 3, 13, 8, 17, 10, 11, 4, 7, 15, 16, 5, 6, 20]
-#mrpc = [4, 8, 10, 11, 14, 15, 16, 18, 7, 1, 5, 9, 13, 17, 3, 6, 20, 12, 2, 19]
-
-#sst_full = [15, 17, 20, 18, 5, 3, 4, 6, 7, 8, 9, 19, 2, 13, 14, 1, 16, 11, 12, 10]
-#sst_5000 = [8, 16, 3, 7, 6, 11, 12, 20, 5, 15, 17, 14, 18, 2, 13, 9, 1, 4, 10, 19]
+import numpy as np
+import loading_data
 
 
-sst_full = [0.9358, 0.9346, 0.9323, 0.9323, 0.9312, 0.9323, 0.9323, 0.9323, 0.9335, 0.9404, 0.9369, 0.9369, 0.9346, 0.9346, 0.9266, 0.9358, 0.9278, 0.93, 0.9335, 0.9278]
-sst_5000 = [0.9243, 0.9197, 0.8991, 0.9243, 0.9151, 0.9128, 0.9117, 0.5092, 0.9232, 0.9243, 0.9128, 0.914, 0.9197, 0.9186, 0.9163, 0.5092, 0.9163, 0.9186, 0.9335, 0.914]
+dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1"}
 
-cola = [0.0, 0.0, 0.5941395545, 0.6072497165, 0.6184055684, 0.6281691769, 0.613867073, 0.5988647643, 0.5500173691, 0.605676649, 0.6068231174, 0.5856531698, 0.5987107026, 0.5657894359, 0.6175983999, 0.6182836522, 0.6039307168, 0.0, 0.5845760203, 0.6347156371]
-
-mrpc = [0.8014705882, 0.8725490196, 0.8578431373, 0.6838235294, 0.8161764706, 0.8578431373, 0.7745098039, 0.6838235294, 0.8357843137, 0.6838235294, 0.6838235294, 0.8651960784, 0.8480392157, 0.6838235294, 0.6838235294, 0.6838235294, 0.8529411765, 0.6838235294, 0.8799019608, 0.8602941176]
-
-for rank in [cola, mrpc, sst_full, sst_5000]:
-    print(len(rank))
+def correlation_between_init_loss_and_val_perf(data):
+    for dataset in data:
+        metric = dataset_to_metric[dataset]
+        for data_size in data[dataset]:
 
 
-print(scipy.stats.spearmanr(cola, mrpc))
-print(scipy.stats.spearmanr(sst_full, mrpc))
-print(scipy.stats.spearmanr(sst_full, cola))
-print(scipy.stats.spearmanr(sst_full, sst_5000))
+            cur_data = data[dataset][data_size]
 
+            init_to_avg_val_perf = avg_val_perf_per_init(cur_data, metric)
+
+
+            init_seed_to_init_loss = get_init_to_metric(cur_data, "loss")
+            init_seed_to_init_perf = get_init_to_metric(cur_data, metric)
+            #init_seed_to_final_perf = get_init_to_final_metric(cur_data, metric)
+            
+            corr_between_two_lists(init_seed_to_init_perf, init_seed_to_init_loss)
+
+            corr_between_first_and_all(init_seed_to_init_loss, init_to_avg_val_perf)
+            
+
+
+def corr_between_two_lists(init_seed_to_init_perf, init_seed_to_init_loss):
+    paired_data = []
+    for init_seed in init_seed_to_init_loss:
+        paired_data.append([init_seed_to_init_loss[init_seed], init_seed_to_init_perf[init_seed]])
+    print("the rank correlation between the loss and valid perf before training:")
+    print(scipy.stats.spearmanr(paired_data))
+    print("the correlation between the loss and valid perf before training:")
+    print(np.corrcoef(paired_data, rowvar=False))
+
+
+def corr_between_first_and_all(init_seed_to_init_loss, init_to_avg_val_perf):
+    num_inits = 10
+    print("SHOULD FIX THIS MAGIC NUMBER")
+
+
+    evals = []
+
+    for i in range(num_inits):
+        init_seed = i + 1
+        #cur = [init_seed_to_init_loss[init_seed]] + init_to_avg_val_perf[init_seed].tolist()
+        cur = init_to_avg_val_perf[init_seed].tolist()
+        evals.append(cur)
+
+    import pdb; pdb.set_trace()        
+    print(scipy.stats.spearmanr(evals, axis=0))
+    print(np.corrcoef(evals))
+
+    
+    
+
+    
+
+def avg_val_perf_per_init(cur_data, metric):
+    init_to_avg = {}
+    for init_seed in cur_data:
+        if init_seed not in init_to_avg:
+            init_to_avg[init_seed] = []
+        for data_seed in cur_data[init_seed]:
+            
+            all_val_perf = cur_data[init_seed][data_seed][metric]["during"]
+
+            val_perf = [one_eval[1] for one_eval in all_val_perf]
+
+            # start average with initial points
+            if len(init_to_avg[init_seed]) == 0:
+                init_to_avg[init_seed] = val_perf
+                continue
+            else:
+                new_sum = np.asarray(init_to_avg[init_seed]) + np.asarray(val_perf)
+                init_to_avg[init_seed] = new_sum
+            
+        init_to_avg[init_seed] = init_to_avg[init_seed] / len(cur_data[init_seed])
+    return init_to_avg
+
+
+def get_init_to_metric(cur_data, metric):
+    init_seed_to_init_metric = {}
+    for init_seed in cur_data:
+        for data_seed in cur_data[init_seed]:
+
+            # if first data_seed
+            if init_seed not in init_seed_to_init_metric:
+                init_seed_to_init_metric[init_seed] = cur_data[init_seed][data_seed][metric]['before']
+            # check that the init metric is the same for the same init seeds
+            else:
+                assert init_seed_to_init_metric[init_seed] == cur_data[init_seed][data_seed][metric]['before']
+    return init_seed_to_init_metric
+
+
+def check_intuitions():
+    first = [1,2,3,4,5,6,7,8,9,10]
+    for i in range(10):
+        # second = random permutation of first
+        second = np.random.permutation(first)
+        print(scipy.stats.spearmanr(first, second))
+
+    print("")
+    for i in range(10):
+        lower_half = [1,2,3,4,5]
+        upper_half = [6,7,8,9,10]
+        lower_half = np.random.permutation(lower_half)
+        upper_half = np.random.permutation(upper_half)
+
+        third = lower_half.tolist() + upper_half.tolist()
+        print(scipy.stats.spearmanr(first, third))
+
+    
+
+def main():
+    #check_intuitions()
+    data = loading_data.load_all_data()
+    correlation_between_init_loss_and_val_perf(data)
+
+
+if __name__ == "__main__":
+    main()
