@@ -3,7 +3,7 @@ import numpy as np
 import loading_data
 
 
-dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1"}
+dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1", "cola": "mcc"}
 
 def correlation_between_init_loss_and_val_perf(data):
     for dataset in data:
@@ -53,10 +53,6 @@ def corr_between_first_and_all(init_seed_to_init_loss, init_to_avg_val_perf):
     print(scipy.stats.spearmanr(evals, axis=0))
     print(np.corrcoef(evals))
 
-    
-    
-
-    
 
 def avg_val_perf_per_init(cur_data, metric):
     init_to_avg = {}

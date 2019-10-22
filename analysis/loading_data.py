@@ -2,10 +2,12 @@ import os
 import ast
 import re
 
-#datasets = ["mrpc", "sst", "cola"]
-datasets = ["sst", "mrpc"]
+datasets = ["mrpc", "sst", "cola"]
+#datasets = ["cola"]
 
-data_path = "/home/jessedd/projects/bert_on_stilts/beaker/output/saved_logs/"
+# the data is split in two locations -- output/${DATASET} and output/saved_logs/${DATASET}
+
+data_path = "/home/jessedd/projects/bert_on_stilts/beaker/output/"
 
 
 def check_finished(lines):
@@ -25,7 +27,7 @@ def check_finished(lines):
 
 def clean_line_data(line_data):
     if "Z" in line_data:
-        # [\r\n]?[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z
+        # the regex given by colin: [\r\n]?[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z
         matches = re.findall('[\r\n]?[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z', line_data)
         for match in matches:
             if match in line_data:
@@ -45,8 +47,8 @@ def process_lines(lines):
             if cur_metric not in performance:
                 performance[cur_metric] = {}
 
-
-            line_data = line.split(" ", 1)[1]
+            #line_data = line.split(" ", 1)[1]
+            line_data = line
             line_data = clean_line_data(line_data)
 
             performance[cur_metric][eval_timing] = ast.literal_eval(line_data)
@@ -78,8 +80,8 @@ def process_lines(lines):
 
     return performance        
 
-def load_data(dir_path, check_which_finished=False):
-    data = {}
+def load_data(dir_path, data, check_which_finished=False):
+
     for filename in os.listdir(dir_path):
 
         with open(dir_path + filename) as f:
@@ -91,8 +93,11 @@ def load_data(dir_path, check_which_finished=False):
 
             if "init_seed" not in cur_performance:
                 continue
-            
-            num_train = cur_performance["num_train"]
+
+            if "num_train" in cur_performance:
+                num_train = cur_performance["num_train"]
+            else:
+                num_train = "None"
             init_seed = cur_performance["init_seed"]
             data_seed = cur_performance["data_seed"]
 
@@ -102,24 +107,34 @@ def load_data(dir_path, check_which_finished=False):
             if init_seed not in data[num_train]:
                 data[num_train][init_seed] = {}
 
+            if data_seed in data[num_train][init_seed]:
+                import pdb; pdb.set_trace()
+            
+            #assert data_seed not in data[num_train][init_seed]
             data[num_train][init_seed][data_seed] = cur_performance
 
-    return data
+
 
 
 def load_all_data(check_which_finished=False):
     all_data = {}
     for dataset in datasets:
+
+        data = {}
         dir_path = data_path + dataset + "/"
-        data = load_data(dir_path, check_which_finished=check_which_finished)
-        all_data[dataset] = data
+        load_data(dir_path, data, check_which_finished=check_which_finished)
+        dir_path = data_path + "saved_logs/" + dataset + "/"
+        load_data(dir_path, data, check_which_finished=check_which_finished)
+
+        if len(data) > 0:
+            all_data[dataset] = data
         #import pdb; pdb.set_trace()
 
     return all_data
 
-def print_finished(all_data):
+def print_finished(all_data, dataset="sst"):
     pairs_which_finished = []
-    init_seed_to_data_seed = all_data['sst']['None']
+    init_seed_to_data_seed = all_data[dataset]['None']
     for init_seed in init_seed_to_data_seed:
         for data_seed in init_seed_to_data_seed[init_seed]:
             pairs_which_finished.append((init_seed, data_seed))
