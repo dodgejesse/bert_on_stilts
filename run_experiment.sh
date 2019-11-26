@@ -5,8 +5,8 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 
 # to specify an experiment
 export TASK=mrpc
-INIT_SEED=3
-DATA_SEED=3
+INIT_SEED=1
+DATA_SEED=1
 DEBUG="debug_"
 export OUTPUT_PATH=output/${TASK}/${DEBUG}seed_${INIT_SEED}/
 

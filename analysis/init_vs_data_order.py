@@ -24,6 +24,17 @@ def main():
     print("first is init, then data")    
     for dataset in data:
     #for dataset in ['mrpc']:
+
+
+        if True:
+            import pdb; pdb.set_trace()
+            tmp = list(data[dataset][11].keys())
+            tmp.sort()
+            print(tmp)
+            for init_num in data[dataset]:
+                
+                if not 21 in data[dataset][init_num]:
+                    print(init_num)
         
         mtx = make_two_d_mtx(data[dataset], dataset, best=best_found_performance)
 

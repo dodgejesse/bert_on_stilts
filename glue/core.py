@@ -110,12 +110,13 @@ class InputFeatures(object):
 
 
 class Batch:
-    def __init__(self, input_ids, input_mask, segment_ids, label_ids, tokens):
+    def __init__(self, input_ids, input_mask, segment_ids, label_ids, tokens, indices=None):
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
         self.label_ids = label_ids
         self.tokens = tokens
+        self.indices = indices
 
     def to(self, device):
         return Batch(
@@ -124,16 +125,21 @@ class Batch:
             segment_ids=self.segment_ids.to(device),
             label_ids=self.label_ids.to(device),
             tokens=self.tokens,
+            indices=self.indices,
         )
 
     def __len__(self):
         return len(self.input_ids)
 
     def __getitem__(self, key):
+        if self.indices is None:
+            print("THIS WILL THROW AN ERROR!")
+            print("in runners.py HybridLoader we create a batch and pass indices, but elsewhere we dont")
         return Batch(
             input_ids=self.input_ids[key],
             input_mask=self.input_mask[key],
             segment_ids=self.segment_ids[key],
             label_ids=self.label_ids[key],
             tokens=self.tokens[key],
+            indices=self.indices[key],
         )

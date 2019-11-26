@@ -144,10 +144,10 @@ def convert_examples_to_features(examples, label_map, max_seq_length, tokenizer,
 def convert_to_dataset(features, label_mode):
     full_batch = features_to_data(features, label_mode=label_mode)
     if full_batch.label_ids is None:
-       dataset = TensorDataset(full_batch.input_ids, full_batch.input_mask,
+       dataset = TensorDatasetWithIndex(full_batch.input_ids, full_batch.input_mask,
                                 full_batch.segment_ids)
     else:
-        dataset = TensorDataset(full_batch.input_ids, full_batch.input_mask,
+        dataset = TensorDatasetWithIndex(full_batch.input_ids, full_batch.input_mask,
                                 full_batch.segment_ids, full_batch.label_ids)
     return dataset, full_batch.tokens
 
@@ -167,6 +167,18 @@ def features_to_data(features, label_mode):
         tokens=[f.tokens for f in features],
     )
 
+class TensorDatasetWithIndex(TensorDataset):
+    """
+    Returns the index along with the example
+    """
+
+    def __init__(self, *tensors):
+        super().__init__(*tensors)
+
+    def __getitem__(self, index):
+        data_to_return = tuple(tensor[index] for tensor in self.tensors)
+        return [data_to_return,index]
+
 
 class HybridLoader:
     def __init__(self, dataloader, tokens):
@@ -175,7 +187,8 @@ class HybridLoader:
 
     def __iter__(self):
         batch_size = self.dataloader.batch_size
-        for i, batch in enumerate(self.dataloader):
+        for i, batch_with_indices in enumerate(self.dataloader):
+            batch, indices = batch_with_indices
             if len(batch) == 4:
                 input_ids, input_mask, segment_ids, label_ids = batch
             elif len(batch) == 3:
@@ -190,6 +203,7 @@ class HybridLoader:
                 segment_ids=segment_ids,
                 label_ids=label_ids,
                 tokens=batch_tokens,
+                indices=indices,
             )
 
     def __len__(self):
@@ -269,11 +283,10 @@ class GlueTaskRunner:
 
     def run_train_epoch_and_val(self, train_dataloader, val_examples, task_name, epoch_num):
         train_progress = col.OrderedDict()
-
         for results in self.run_train_epoch_context(train_dataloader):
 
-            step, _, train_epoch_state = results
-
+            step, batch, train_epoch_state = results
+            
             # evaluate the first 20 steps, then every 10 steps (10 times), then every 100 steps
             
             tenth_of_epoch = min(int(len(train_dataloader)/10), 100)
@@ -287,7 +300,7 @@ class GlueTaskRunner:
             else:
                 cur_val_result = None
             deepcopy_of_train_state = copy.deepcopy(train_epoch_state)
-            train_progress[step] = [deepcopy_of_train_state, cur_val_result]
+            train_progress[step] = [deepcopy_of_train_state, cur_val_result, batch.indices]
 
         return train_progress
         
@@ -469,7 +482,6 @@ class GlueTaskRunner:
             train_data, sampler=train_sampler, batch_size=self.rparams.train_batch_size,
         )
 
-        
         # DEBUG
         if False:
             to_return = HybridLoader(train_dataloader, train_tokens)

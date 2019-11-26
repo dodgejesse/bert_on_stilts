@@ -89,12 +89,28 @@ def print_valid_metrics(final_results, out_string):
     return out_string
 
 
+def print_batch_indices(final_results, out_string):
+    batch_indices = []
+    for epoch in final_results["train_results"]:
+        cur_train_results = final_results["train_results"][epoch]
+        batch_indices += [[cur_train_results[0][iter_num][2].tolist() for iter_num in cur_train_results[0]]]
+
+    out_string += "\n"
+    out_string += "indices of examples in batches:"
+    out_string += "\n"
+    out_string += str(batch_indices)
+    out_string += "\n"
+    return out_string
+        
+
+
 def print_all_results(final_results, save_loc):
     out_string = ""
     out_string = print_beginning(final_results, out_string)
     out_string = print_train_loss(final_results, out_string)
     out_string = print_valid_loss(final_results, out_string)
     out_string = print_valid_metrics(final_results, out_string)
+    out_string = print_batch_indices(final_results, out_string)
     if save_loc is None:
         print(out_string)
     else:

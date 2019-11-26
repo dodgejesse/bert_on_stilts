@@ -10,5 +10,5 @@
 
 cd ..
 docker build -t bert_init_eval .
-beaker image rename bert_init_eval bert_init_eval_old33
+beaker image rename bert_init_eval bert_init_eval_old34
 beaker image create -n bert_init_eval bert_init_eval
