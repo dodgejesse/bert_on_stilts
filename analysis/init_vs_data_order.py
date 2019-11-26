@@ -14,32 +14,51 @@ dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1", "cola": "mcc"}
 def main():
     data = loading_data.load_all_data()
 
+    # use best-found instead of final performance
+    best_found_performance = True
+
     init_means = {}
     all_points = {}
     unsorted_mtxs = {}
 
-    
+    print("first is init, then data")    
     for dataset in data:
+    #for dataset in ['mrpc']:
         
-        mtx = make_two_d_mtx(data[dataset]['None'], dataset)
+        mtx = make_two_d_mtx(data[dataset], dataset, best=best_found_performance)
 
         unsorted_mtxs[dataset] = mtx
-        plot_mtx(mtx, dataset, sort_criteria="unsorted")
-        print(np.array(mtx).mean(axis=1))
-        print(np.array(mtx).mean(axis=0))
+        #plot_mtx(mtx, dataset, sort_criteria="unsorted")
 
+
+
+        print(dataset, "unsorted")
+        print(np.array(mtx).mean(axis=1).tolist())
+        print(np.array(mtx).mean(axis=0).tolist())
+        print("")
 
         init_means[dataset] = np.array(mtx).mean(axis=1)
         all_points[dataset] = []
         for row in mtx:
             all_points[dataset] = all_points[dataset] + row
         
-        sorted_mtx = sort_rows_and_cols(mtx)
-        plot_mtx(sorted_mtx, dataset, sort_criteria="independent_sort")
+        sorted_mtx, indices = sort_rows_and_cols(mtx)
 
-    print_init_mean_corr_all_pairs(init_means)
+
+        print(dataset, "sorted")
+        print(np.array(sorted_mtx).mean(axis=1).tolist())
+        print(np.array(sorted_mtx).mean(axis=0).tolist())
+        print("")
+        print("")
+
+        print(indices)
+
+        
+        plot_mtx(sorted_mtx, indices, dataset, sort_criteria="means", best=best_found_performance)
+
+    #print_init_mean_corr_all_pairs(init_means)
     #print_init_mean_corr_all_pairs(all_points)
-    sorted_together = sort_together(unsorted_mtxs, ["cola", "mrpc"])
+    #sorted_together = sort_together(unsorted_mtxs, ["cola", "mrpc"])
 
     
 
@@ -72,13 +91,31 @@ def sort_together(unsorted_mtxs, datasets):
 
     
 
-def plot_mtx(mtx, dataset, sort_criteria="unsorted"):
+def plot_mtx(mtx, indices, dataset, sort_criteria="unsorted", best=False):
     plt.figure()
     plt.imshow(mtx)
     plt.colorbar()
-    filename = "/home/jessedd/data/results/bert_on_stilts/plot_drafts/{}_sort={}.pdf".format(dataset, sort_criteria)
+
+    plt.yticks(range(max(indices[0])), indices[0])
+    plt.xticks(range(max(indices[1])), indices[1])
+    plt.ylabel("init seed")
+    plt.xlabel("data order seed")
+
+
+    mtx_size = len(mtx)
+    dirname = "/home/jessedd/data/results/bert_on_stilts/plot_drafts/"
+    filename = "{}_sort={}_numexp={}".format(dataset,sort_criteria,mtx_size)
+    plt.title(filename)
+
+    filename = dirname + filename
+    if best:
+        filename += "_bestfound"
+    else:
+        filename += "_final"
+    filename += ".pdf"
+    
     print("saving to {}".format(filename))
-    plt.savefig(filename)
+    plt.savefig(filename, bbox_inches='tight')
 
     
 def print_init_mean_corr_all_pairs(init_means):
@@ -95,20 +132,31 @@ def print_init_mean_corr_all_pairs(init_means):
     
     import pdb; pdb.set_trace()
 
-def make_two_d_mtx(data, dataset):
+def make_two_d_mtx(data, dataset, best=False):
 
     metric = dataset_to_metric[dataset]
-    mtx = [[0 for i in range(10)] for j in range(10)] 
 
-    for init_seed in range(10):
-        for data_seed in range(10):
-            mtx[init_seed][data_seed] = data[init_seed+1][data_seed+1][metric]['after']
+    #to find the num experiments:
+    max_seed = 0
+    for seed in data:
+        if seed > max_seed:
+            max_seed = seed
+    mtx = [[0 for i in range(max_seed)] for j in range(max_seed)] 
+
+    for init_seed in range(max_seed):
+        for data_seed in range(max_seed):
+            if best:
+                during_indices_and_evals = data[init_seed+1][data_seed+1][metric]['during']
+                during_evals = [i_and_e[1] for i_and_e in during_indices_and_evals]
+                mtx[init_seed][data_seed] = max(during_evals)
+            else:
+                mtx[init_seed][data_seed] = data[init_seed+1][data_seed+1][metric]['after']
 
     return mtx
 
 
 
-def sort_rows_and_cols(mtx):
+def sort_rows_and_cols(mtx, print_debug = False):
     # plan:
     # add column which is the average
     # sort by that column
@@ -118,25 +166,23 @@ def sort_rows_and_cols(mtx):
 
     mtx = np.array(mtx)    
 
-    sorted_by_cols = mtx[:, np.argsort(np.array(mtx).mean(0))]
+
+    data_indices = np.argsort(mtx.mean(0))
+    sorted_by_cols = mtx[:, data_indices]
 
     sorted_by_cols_t = sorted_by_cols.T
-    sorted_rows_and_cols = sorted_by_cols_t[:, np.argsort(np.array(sorted_by_cols_t).mean(0))]
+    init_indices = np.argsort(sorted_by_cols_t.mean(0))
+    sorted_rows_and_cols = sorted_by_cols_t[:, init_indices]
 
     final = sorted_rows_and_cols.T
 
-    for init_row in final:
-        print(init_row.tolist())
+    if print_debug:
+        for init_row in final:
+            print(init_row.tolist())
 
-    #print(final.mean(axis=0))
-    #print(final.mean(axis=1))
+    all_indices = [init_indices + 1, data_indices + 1]
     
-        
-    #import pdb; pdb.set_trace()                
-    #col_mean = mtx.mean(axis=0)
-    #with_col_mean = np.append([col_mean],  mtx, axis=0)
-    
-    return final
+    return final, all_indices
 
     
 if __name__ == "__main__":

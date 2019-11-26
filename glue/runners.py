@@ -275,9 +275,12 @@ class GlueTaskRunner:
             step, _, train_epoch_state = results
 
             # evaluate the first 20 steps, then every 10 steps (10 times), then every 100 steps
-
+            
             tenth_of_epoch = min(int(len(train_dataloader)/10), 100)
-            if ((step < 50 or (step < 300 and step % 10 == 0)) and epoch_num == 0) or step % tenth_of_epoch == 0:
+            tenth_of_tenth_of_epoch = tenth_of_epoch / 10
+            if ((step < 50 or
+                 (step < 300 and step % tenth_of_tenth_of_epoch == 0)) and
+                epoch_num == 0) or step % tenth_of_epoch == 0:
                 cur_val_result = self.run_val(val_examples, task_name, verbose=False)
                 del cur_val_result["logits"]
                 del cur_val_result["labels"]

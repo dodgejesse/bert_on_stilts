@@ -1,6 +1,7 @@
 import os
 import ast
 import re
+import pickle
 
 datasets = ["mrpc", "sst", "cola"]
 #datasets = ["cola"]
@@ -116,7 +117,13 @@ def load_data(dir_path, data, check_which_finished=False):
 
 
 
-def load_all_data(check_which_finished=False):
+def load_all_data(check_which_finished=False, reload_from_disk=False):
+    if not reload_from_disk:
+        with open('results/all_data', 'rb') as f:
+            data = pickle.load(f)
+            return data
+
+        
     all_data = {}
     for dataset in datasets:
 
