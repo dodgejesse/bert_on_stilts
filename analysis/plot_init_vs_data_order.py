@@ -9,15 +9,20 @@ import matplotlib.pyplot as plt
 
 
 
-dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1", "cola": "mcc"}
+dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1", "cola": "mcc", "rte": "acc"}
+
+dataset_to_failurenum = {"sst": 0, "mrpc": 0.75, "cola": 0.1, "rte": .5}
 
 def main():
     data = loading_data.load_all_data()
 
     # use best-found instead of final performance
-    best_found_performance = True
+    best_found_performance = False
+    type_of_sort = "mean" #"numfail"
+    print_debug = False
 
     init_means = {}
+    init_num_fails = {}
     all_points = {}
     unsorted_mtxs = {}
 
@@ -26,47 +31,40 @@ def main():
     #for dataset in ['mrpc']:
 
 
-        if True:
-            import pdb; pdb.set_trace()
-            tmp = list(data[dataset][11].keys())
-            tmp.sort()
-            print(tmp)
-            for init_num in data[dataset]:
-                
-                if not 21 in data[dataset][init_num]:
-                    print(init_num)
-        
         mtx = make_two_d_mtx(data[dataset], dataset, best=best_found_performance)
 
         unsorted_mtxs[dataset] = mtx
         #plot_mtx(mtx, dataset, sort_criteria="unsorted")
 
 
-
-        print(dataset, "unsorted")
-        print(np.array(mtx).mean(axis=1).tolist())
-        print(np.array(mtx).mean(axis=0).tolist())
-        print("")
+        if print_debug:
+            print(dataset, "unsorted")
+            print(np.array(mtx).mean(axis=1).tolist())
+            print(np.array(mtx).mean(axis=0).tolist())
+            print("")
 
         init_means[dataset] = np.array(mtx).mean(axis=1)
+        init_num_fails[dataset] = (np.array(mtx) > dataset_to_failurenum[dataset]).sum(axis=1)
         all_points[dataset] = []
         for row in mtx:
             all_points[dataset] = all_points[dataset] + row
         
-        sorted_mtx, indices = sort_rows_and_cols(mtx)
+        sorted_mtx, indices = sort_rows_and_cols(mtx, dataset, type_of_sort=type_of_sort)
 
 
-        print(dataset, "sorted")
-        print(np.array(sorted_mtx).mean(axis=1).tolist())
-        print(np.array(sorted_mtx).mean(axis=0).tolist())
-        print("")
-        print("")
+        if print_debug:
+            print(dataset, "sorted")
+            print(np.array(sorted_mtx).mean(axis=1).tolist())
+            print(np.array(sorted_mtx).mean(axis=0).tolist())
+            print("")
+            print("")
 
-        print(indices)
+            print(indices)
 
         
-        plot_mtx(sorted_mtx, indices, dataset, sort_criteria="means", best=best_found_performance)
+        plot_mtx(sorted_mtx, indices, dataset, sort_criteria=type_of_sort, best=best_found_performance)
 
+    #import pdb; pdb.set_trace()
     #print_init_mean_corr_all_pairs(init_means)
     #print_init_mean_corr_all_pairs(all_points)
     #sorted_together = sort_together(unsorted_mtxs, ["cola", "mrpc"])
@@ -132,8 +130,11 @@ def plot_mtx(mtx, indices, dataset, sort_criteria="unsorted", best=False):
 def print_init_mean_corr_all_pairs(init_means):
 
     for pair in itertools.combinations(dataset_to_metric.keys(), 2):
+        
         first_dataset = pair[0]
         second_dataset = pair[1]
+        if not len(first_dataset) == len(second_dataset):
+            continue
         print("rank correlation between {} and {}".format(first_dataset, second_dataset))
         print(scipy.stats.spearmanr(init_means[first_dataset], init_means[second_dataset]))
         print("correlation between {} and {}".format(first_dataset, second_dataset))
@@ -167,7 +168,7 @@ def make_two_d_mtx(data, dataset, best=False):
 
 
 
-def sort_rows_and_cols(mtx, print_debug = False):
+def sort_rows_and_cols(mtx, dataset, type_of_sort="mean", print_debug = False):
     # plan:
     # add column which is the average
     # sort by that column
@@ -177,12 +178,12 @@ def sort_rows_and_cols(mtx, print_debug = False):
 
     mtx = np.array(mtx)    
 
-
-    data_indices = np.argsort(mtx.mean(0))
+    data_indices = sort_diff_ways(mtx, dataset, type_of_sort, print_debug=False)
     sorted_by_cols = mtx[:, data_indices]
 
     sorted_by_cols_t = sorted_by_cols.T
-    init_indices = np.argsort(sorted_by_cols_t.mean(0))
+    
+    init_indices = sort_diff_ways(sorted_by_cols_t, dataset, type_of_sort,print_debug=True)
     sorted_rows_and_cols = sorted_by_cols_t[:, init_indices]
 
     final = sorted_rows_and_cols.T
@@ -195,6 +196,20 @@ def sort_rows_and_cols(mtx, print_debug = False):
     
     return final, all_indices
 
+
+def sort_diff_ways(mtx, dataset, type_of_sort, print_debug=False):
+    if type_of_sort == "mean":
+        return np.argsort(mtx.mean(0))
+    elif type_of_sort == "numfail":
+        fail_num = dataset_to_failurenum[dataset]
+        number_of_successes = (mtx > fail_num).sum(0)
+        if print_debug:
+            print("dataset: {}, num successes: {}".format(dataset, number_of_successes.tolist()))
+        return np.argsort(number_of_successes)
+        
+    else:
+        raise NotImplementedError
+        
     
 if __name__ == "__main__":
     main()

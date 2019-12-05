@@ -12,6 +12,6 @@ for task in data:
 import pdb; pdb.set_trace()
 
 
-f = open('results/mrpc25_cola25_sst10', 'wb')
+f = open('results/mrpc25_cola25_rte25_sst15', 'wb')
 pickle.dump(data, f)
 

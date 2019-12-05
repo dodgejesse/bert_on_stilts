@@ -3,7 +3,7 @@ import ast
 import re
 import pickle
 
-datasets = ["mrpc", "sst", "cola"]
+datasets = ["mrpc", "sst", "cola", "rte"]
 #datasets = ["cola"]
 
 # the data is split in two locations -- output/${DATASET} and output/saved_logs/${DATASET}
