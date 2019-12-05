@@ -13,9 +13,11 @@ def main():
     print(data.keys())
 
     for dataset in data:
+        print(dataset)
         cur_data = extract_data(data, dataset)
 
         early_stop_with_varying_budgets(cur_data)
+        print("")
 
 def early_stop_with_varying_budgets(cur_data):
     frac_runs_to_data_to_avg = {}
@@ -53,7 +55,6 @@ def early_stop_with_varying_budgets(cur_data):
                 subsample_maxes.append(max(train_fully_max, stop_train_max))
             frac_runs_to_data_to_avg[frac_of_runs][frac_of_data] = np.mean(subsample_maxes)
             print(frac_of_runs, frac_of_data, np.mean(subsample_maxes))
-        import pdb; pdb.set_trace()
 
                 
                 
