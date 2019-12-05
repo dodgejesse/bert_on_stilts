@@ -2,7 +2,14 @@ import loading_data
 import pickle
 
 data = loading_data.load_all_data()
+dataset_to_metric = {"sst": "acc", "mrpc": "acc_and_f1", "cola": "mcc", "rte": "acc"}
 
+for task in data.keys():
+    
+    batch_nums = [one_eval[0] for one_eval in data[task][1][1][dataset_to_metric[task]]['during']]
+    print(task, len(batch_nums))
+
+exit()
 
 task = "mrpc"
 print(task)
