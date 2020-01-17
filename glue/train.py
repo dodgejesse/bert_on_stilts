@@ -173,7 +173,7 @@ def main():
     #print(model.classifier.weight)
     #print(model)
     #exit()
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     
     tokenizer = shared_model_setup.create_tokenizer(

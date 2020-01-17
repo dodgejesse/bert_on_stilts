@@ -1,5 +1,5 @@
 
-TASK=cola
+TASK=rte
 
 #EXPERIMENT_IDS=""
 #for PAIR in "11 21" "13 24"; do
@@ -10,17 +10,17 @@ TASK=cola
 
 
 EXPERIMENT_IDS=""
-for INIT_SEED in {1..2}; do
-    for DATA_SEED in {1..2}; do
+for INIT_SEED in {1..10}; do
+    for DATA_SEED in {11..25}; do
 	EXPERIMENT_IDS="${EXPERIMENT_IDS} `INIT_SEED=${INIT_SEED} DATA_SEED=${DATA_SEED} TASK=${TASK} beaker experiment create -f spec.yml -q`"
     done
 done
 
-#for INIT_SEED in {21..25}; do
-#    for DATA_SEED in {1..25}; do
-#	EXPERIMENT_IDS="${EXPERIMENT_IDS} `INIT_SEED=${INIT_SEED} DATA_SEED=${DATA_SEED} TASK=${TASK} beaker experiment create -f spec.yml -q`"
-#    done
-#done
+for INIT_SEED in {11..25}; do
+    for DATA_SEED in {1..25}; do
+	EXPERIMENT_IDS="${EXPERIMENT_IDS} `INIT_SEED=${INIT_SEED} DATA_SEED=${DATA_SEED} TASK=${TASK} beaker experiment create -f spec.yml -q`"
+    done
+done
 
 
 echo ""

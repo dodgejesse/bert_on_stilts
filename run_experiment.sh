@@ -4,7 +4,7 @@ export BERT_ALL_DIR=/home/jessedd/projects/bert_on_stilts/cache/bert_metadata
 
 
 # to specify an experiment
-export TASK=mrpc
+export TASK=rte
 INIT_SEED=1
 DATA_SEED=1
 DEBUG="debug_"
