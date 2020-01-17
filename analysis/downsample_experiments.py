@@ -1,8 +1,8 @@
 import loading_data
 import batch_nums_for_early_stopping
 
-def main(data, dataset):
-    batch_nums = batch_nums_for_early_stopping.get_batch_nums()
+def main(data, dataset, max_num_evals=None):
+    batch_nums = batch_nums_for_early_stopping.get_batch_nums(max_evals=max_num_evals)
 
     to_return = []
     for one_eval in data:
