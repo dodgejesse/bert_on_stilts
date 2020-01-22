@@ -17,8 +17,8 @@ def main():
     data = loading_data.load_all_data()
 
     # use best-found instead of final performance
-    best_found_performance = False
-    type_of_sort = "mean" #"numfail"
+    best_found_performance = True
+    type_of_sort = "max" #"mean" #"numfail"
     print_debug = False
 
     init_means = {}
@@ -200,6 +200,8 @@ def sort_rows_and_cols(mtx, dataset, type_of_sort="mean", print_debug = False):
 def sort_diff_ways(mtx, dataset, type_of_sort, print_debug=False):
     if type_of_sort == "mean":
         return np.argsort(mtx.mean(0))
+    elif type_of_sort == "max":
+        return np.argsort(mtx.max(0))
     elif type_of_sort == "numfail":
         fail_num = dataset_to_failurenum[dataset]
         number_of_successes = (mtx > fail_num).sum(0)
