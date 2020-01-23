@@ -220,7 +220,8 @@ def find_maxes_DEPRECATED(cur_subsample, batch_num_to_beat):
                 maxes.append(max(one_run_evals))
 
             return maxes
-            
+
+# deprecated
 def find_rank_after_frac_of_data(cur_subsample, batch_num_to_beat):
     for eval_index in range(len(cur_subsample[0])):
         if cur_subsample[0][eval_index][0] >= batch_num_to_beat:
