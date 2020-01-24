@@ -82,13 +82,20 @@ def print_debug_info(unique_to_numeach_to_baseline,unique_to_numeach_to_results)
     
 
 def print_budgets_for_which_we_win(budget_to_perf):
+    counter_we_win = 0
+    counter_total = 0
     max_budget = max(budget_to_perf.keys())
     for b in range(max_budget + 1):
         if b in budget_to_perf:
+            counter_total += 1
             baseline_average = budget_to_perf[b][:,6].mean()
             result_average = budget_to_perf[b][:,5].mean()
             if result_average > baseline_average:
+                counter_we_win += 1
                 print(b, baseline_average, result_average)
+
+    print("fraction we win: {}, number we win: {}, total: {}".format(1.0*counter_we_win / counter_total,
+                                                                     counter_we_win, counter_total))
 
 def one_experiment(data, num_of_each_seed, num_unique_seeds, budget_to_perf):
     results_wi_do_data = np.zeros((num_samples, num_unique_seeds, num_unique_seeds, data.shape[2]))
