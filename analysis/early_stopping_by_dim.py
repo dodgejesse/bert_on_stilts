@@ -69,34 +69,6 @@ def early_stop_by_dim(data, dataset):
     import pdb; pdb.set_trace()
 
 
-def print_debug_info(unique_to_numeach_to_baseline,unique_to_numeach_to_results):
-    for unique_seeds in unique_to_numeach_to_results:
-        num_wi_stop, num_do_stop, percent_data = np.nonzero((unique_to_numeach_to_results[unique_seeds][2] -
-                    unique_to_numeach_to_baseline[unique_seeds][2]) > 0)
-        print("")
-        print("unique_seeds: {}".format(unique_seeds))
-        print("num_wi_stop, num_do_stop, num_dev_evals")
-        for i in range(num_wi_stop.shape[0]):
-            print(num_wi_stop[i], num_do_stop[i], percent_data[i])
-        
-    
-
-def print_budgets_for_which_we_win(budget_to_perf):
-    counter_we_win = 0
-    counter_total = 0
-    max_budget = max(budget_to_perf.keys())
-    for b in range(max_budget + 1):
-        if b in budget_to_perf:
-            counter_total += 1
-            baseline_average = budget_to_perf[b][:,6].mean()
-            result_average = budget_to_perf[b][:,5].mean()
-            if result_average > baseline_average:
-                counter_we_win += 1
-                print(b, baseline_average, result_average)
-
-    print("fraction we win: {}, number we win: {}, total: {}".format(1.0*counter_we_win / counter_total,
-                                                                     counter_we_win, counter_total))
-
 def one_experiment(data, num_of_each_seed, num_unique_seeds, budget_to_perf):
     results_wi_do_data = np.zeros((num_samples, num_unique_seeds, num_unique_seeds, data.shape[2]))
     baseline_wi_do_data = np.zeros((num_samples, num_unique_seeds, num_unique_seeds, data.shape[2]))
