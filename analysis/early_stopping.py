@@ -15,12 +15,13 @@ print_debug = False
 
 def main():
     data = loading_data.load_all_data()
-    
+    import pdb; pdb.set_trace()
     print(data.keys())
 
     dataset_to_results = {}
     for dataset in data:
         print(dataset)
+
         cur_data = extract_data(data, dataset)
 
         budget_to_assignments = find_valid_assignments(cur_data)

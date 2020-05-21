@@ -119,7 +119,7 @@ def load_data(dir_path, data, check_which_finished=False):
 
 def load_all_data(check_which_finished=False, reload_from_disk=False):
     if not reload_from_disk:
-        with open('results/all_data', 'rb') as f:
+        with open('results/all_data_to_release', 'rb') as f:
             data = pickle.load(f)
             return data
 
@@ -138,6 +138,43 @@ def load_all_data(check_which_finished=False, reload_from_disk=False):
         #import pdb; pdb.set_trace()
 
     return all_data
+
+def load_all_data_for_release():
+    with open('results/all_data', 'rb') as f:
+        data = pickle.load(f)
+        
+
+        for dataset in data:
+            for wi in data[dataset]:
+                for do in data[dataset][wi]:
+                    if 'num_train' in data[dataset][wi][do]:
+                        del data[dataset][wi][do]['num_train']
+                    if 'init_seed' in data[dataset][wi][do]:
+                        del data[dataset][wi][do]['init_seed']
+                    if 'data_seed' in data[dataset][wi][do]:
+                        del data[dataset][wi][do]['data_seed']
+
+
+        # to check that all the data is here
+        for dataset in data:
+            for wi in data[dataset]:
+                for do in data[dataset][wi]:
+                    check_one_run(data[dataset][wi][do], dataset)
+        import pdb; pdb.set_trace()                    
+        return data
+
+def check_one_run(data, dataset):
+    if not 'train_loss' in data or not 'loss' in data:
+        print("PROBLEMS")
+    if dataset == 'sst' or dataset == 'rte':
+        if not 'acc' in data:
+            print("PROBLEMS")
+    if dataset == 'cola':
+        if not 'mcc' in data:
+            print("PROBLEMS")
+    if dataset == 'mrpc':
+        if not 'acc' in data or not 'f1' in data or not 'acc_and_f1' in data:
+            print("PROBLEMS")
 
 def print_finished(all_data, dataset="sst"):
     pairs_which_finished = []

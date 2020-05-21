@@ -26,7 +26,9 @@ def main():
 
     print(dataset)
     cur_data = extract_data(data, dataset)
-        
+
+    import pdb; pdb.set_trace()
+    
     early_stop_by_dim(cur_data, dataset)
 
         

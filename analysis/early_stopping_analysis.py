@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 
 print_debug = True
 round_digits = 4
@@ -29,6 +30,22 @@ def single_best(dataset_to_budget_to_results):
                 print("")
             else:
                 dataset_to_plot_data[dataset][budget] = result
+
+
+        # to print average improvement:
+        improves = [dataset_to_plot_data[dataset][budget]["improvement"] for budget in dataset_to_plot_data[dataset]]
+        #average = []
+        #for budget in dataset_to_plot_data[dataset]:
+        #    average += dataset_to_plot_data[dataset][budget]["improvement"]
+        #average = average / len(dataset_to_plot_data[dataset])
+
+        improves = np.asarray(improves)
+        improves = improves * 100
+        print("average improvement: {}".format(np.mean(improves)))
+        print("std dev: {}".format(np.std(improves)))
+        print("var: {}".format(np.var(improves)))
+              
+        
     return dataset_to_plot_data
 
 def find_baseline(experiments):
