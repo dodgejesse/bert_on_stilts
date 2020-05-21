@@ -1,0 +1,22 @@
+For all models and algorithms presented, check if you include:
+
+[ ] A clear description of the mathematical setting, algorithm, and/or model.
+[ ] An analysis of the complexity (time, space, samplesize) of any algorithm.
+[ ] A link to a downloadable source code, with specification of all dependencies, including external libraries.
+[ ] A statement of the result.
+[ ] A clear explanation of any assumptions.
+[ ] A complete proof of the claim.
+
+For any theoretical claim, check if you include:
+
+[ ] A complete description of the data collection process, including sample size.
+[ ] A link to a downloadable version of the dataset or simulation environment.
+[ ] An explanation of any data that were excluded, description of any pre-processing step.
+[ ] An explanation of how samples were allocated for training / validation / testing.
+[ ] The range of hyper-parameters considered, method to select the best hyper-parameter configuration, and specification of all hyper-parameters used to generate results.
+[ ] The exact number of evaluation runs.
+[ ] A description of how experiments were run.
+[ ] A clear definition of the specific measure or statistics used to report results.
+[ ] Clearly defined error bars.
+[ ] A description of results with central tendency (e.g. mean) & variation (e.g. stddev).
+[ ] A description of the computing infrastructure used.
